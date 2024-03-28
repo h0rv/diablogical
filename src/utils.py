@@ -1,52 +1,29 @@
 import re
 from os import path
 
-import requests
-from bs4 import BeautifulSoup
-
-
-def clean_url(url: str) -> str:
-    cleaned_url = url
-
-    if url.startswith("http://") or url.startswith("https://"):
-        cleaned_url = cleaned_url.split("://")[-1]
-
-    return cleaned_url
-
-
-def clean_html(html):
-    # Remove script and style tags
-    soup = BeautifulSoup(html, "html.parser")
-    for script in soup(["script", "style"]):
-        script.extract()
-
-    # Get text with preserved line breaks
-    text = soup.get_text(separator="\n")
-
-    # Collapse multiple consecutive newlines into a single newline
-    return "\n".join(line.strip() for line in text.splitlines() if line.strip())
+import trafilatura
 
 
 def url_to_text(url: str) -> str:
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an exception if the request was unsuccessful
+    html = trafilatura.fetch_url(url)
+    text = trafilatura.extract(html)
 
-        cleaned_text = clean_html(response.text)
+    with open(path.join("debug", "extracted_text.txt"), "w", encoding="utf-8") as f:
+        f.write(text)
 
-        cleaned_text_file = path.join("debug", "cleaned_text.txt")
-        with open(cleaned_text_file, "w", encoding="utf-8") as f:
-            f.write(cleaned_text)
-
-        return cleaned_text
-
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching URL: {e}")
-        return ""
+    return text
 
 
-def url_to_filename(url):
+def remove_prefixes(string: str, prefixes: [str]) -> str:
+    return string.lstrip(
+        tuple(prefix for prefix in prefixes if string.startswith(prefix))
+    )
+
+
+def url_to_filename(url: str) -> str:
     filename = re.sub(r"\W+", "_", url)
+    filename = filename.strip("_")
+    filename = remove_prefixes(filename, ["http", "https", "www"])
     filename = filename.strip("_")
     filename = filename[:255]
 

@@ -80,24 +80,34 @@ async def index():
         <body>
             <div class="container">
                 <h1>Diablogical</h1>
+                <input type="text" id="textInput" placeholder="Blog URL">
+                <button onclick="submitText()">Submit</button>
                 <div class="audio-list">
                     <ul>
                         {html_audio_files_list}
                     </ul>
                 </div>
             <div class="audio-container">
-                <audio id="audioPlayer" controls >
-                    <!-- Placeholder for audio player -->
-                    Your browser does not support the audio element.
-                </audio>
+                <audio id="audioPlayer" controls> </audio>
+                <br>
+                <label for="playbackSpeedSlider">Playback Speed:</label>
+                <input type="range" id="playbackSpeedSlider" min="0.0" max="2" step="0.05" value="1">
+                <span id="playbackSpeedValue">1</span>
             </div>
 
             <script>
+                const audioPlayer = document.getElementById('audioPlayer');
+                const playbackSpeedSlider = document.getElementById('playbackSpeedSlider');
+                const playbackSpeedValue = document.getElementById('playbackSpeedValue');
+
                 function playAudio(audioSrc) {{
-                    var audioPlayer = document.getElementById('audioPlayer');
                     audioPlayer.src = '/play/' + audioSrc;  // Changed to use /play route
                     audioPlayer.play();
                 }}
+                playbackSpeedSlider.addEventListener('input', () => {{
+                    audioPlayer.playbackRate = playbackSpeedSlider.value;
+                    playbackSpeedValue.textContent = playbackSpeedSlider.value;
+                }});
             </script>
         </body>
         </html>
