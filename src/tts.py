@@ -4,8 +4,6 @@ import subprocess
 import tarfile
 import urllib.request
 
-# import ffmpeg
-
 
 class Piper:
     """

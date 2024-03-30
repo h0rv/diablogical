@@ -6,6 +6,7 @@
   - [ ] Call LLM to turn tables, equations, code, etc. to natural language
     - So you don't hear "def main(x: int) -> None:..." lol, but rather a summarization of such things
   - [ ] Multimodality to describe images, graphs, charts, and tables
+  - [ ] For famous people, use their voice sample to generate post
 
 - Interface
 
