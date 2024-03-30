@@ -1,0 +1,37 @@
+<style>
+  .audio-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+  }
+  .audio-item:last-child {
+    border-bottom: none;
+  }
+  .audio-item .title {
+    flex-grow: 1;
+    margin-right: 10px;
+    font-weight: bold;
+    color: #333;
+  }
+  .audio-item .play-button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+</style>
+
+{% for audio_file in files %}
+<div class="audio-item">
+  <div class="title">
+    {{ audio_file | replace("_", " ") | replace(".wav", "") | title }}
+  </div>
+  <button class="play-button" onclick="playAudio('{{ audio_file }}')">
+    Play
+  </button>
+</div>
+{% endfor %}

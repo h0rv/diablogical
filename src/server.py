@@ -1,17 +1,22 @@
 import os
+from urllib.parse import unquote
 import re
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 
 from .tts import Piper
 from .utils import url_to_filename, url_to_text
 
 app = FastAPI()
 
-piper: Piper
+templates = Jinja2Templates(directory="src/templates")
 
 
 OUTPUT_DIR = "./output"
+
+piper: Piper
 
 
 @app.on_event("startup")
@@ -20,106 +25,18 @@ async def startup_event():
     piper = Piper()
 
 
-@app.get("/", response_class=Response, include_in_schema=False)
-async def index():
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def index(request: Request):
     try:
-        # Fetch the list of audio files using the /file_list route
-        response = await file_list()
-        audio_files = response["files"]
-        html_audio_files_list = "\n".join(
-            [
-                f"<li><a href='#' onclick='playAudio(\"{audio_file}\")'>{audio_file}</a></li>"
-                for audio_file in audio_files
-            ]
-        )
-        # Generate HTML dynamically with audio file links
-        html = f"""
-        <!DOCTYPE html>
-        <html lang="en" color-mode="user">
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta name="color-scheme" content="light dark" />
-            <title>Diablogical</title>
-            <style>
-                body {{
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    margin: 8rem;
-                    margin-left: 16rem;
-                    padding: 0;
-                }}
-                .container {{
-                    max-height: 80vh;
-                    overflow: auto;
-                    padding: 4rem;
-                    width: 100%;
-                }}
-                .audio-container {{
-                    position: fixed;
-                    bottom: 0;
-                    left: 0;
-                    width: 100%;
-                    background-color: #1b1a1c;
-                    padding: 1.25rem;
-                    text-align: center;
-                    .audio {{
-                        width: 100%;
-                    }}
-                }}
-                .audio-container audio {{
-                    width: 80%;
-                }}
-                .audio-list {{
-                    max-height: 200px; /* Adjust as needed */
-                    overflow-y: auto;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Diablogical</h1>
-                <input type="text" id="textInput" placeholder="Blog URL">
-                <button onclick="submitText()">Submit</button>
-                <div class="audio-list">
-                    <ul>
-                        {html_audio_files_list}
-                    </ul>
-                </div>
-            <div class="audio-container">
-                <audio id="audioPlayer" controls> </audio>
-                <br>
-                <label for="playbackSpeedSlider">Playback Speed:</label>
-                <input type="range" id="playbackSpeedSlider" min="0.0" max="2" step="0.05" value="1">
-                <span id="playbackSpeedValue">1</span>
-            </div>
-
-            <script>
-                const audioPlayer = document.getElementById('audioPlayer');
-                const playbackSpeedSlider = document.getElementById('playbackSpeedSlider');
-                const playbackSpeedValue = document.getElementById('playbackSpeedValue');
-
-                function playAudio(audioSrc) {{
-                    audioPlayer.src = '/play/' + audioSrc;  // Changed to use /play route
-                    audioPlayer.play();
-                }}
-                playbackSpeedSlider.addEventListener('input', () => {{
-                    audioPlayer.playbackRate = playbackSpeedSlider.value;
-                    playbackSpeedValue.textContent = playbackSpeedSlider.value;
-                }});
-            </script>
-        </body>
-        </html>
-        """
-
-        return Response(content=html, media_type="text/html")
-    except Exception as e:
+        return templates.TemplateResponse("index.html", {"request": request})
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="HTML file not found")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/file_list")
-async def file_list():
+@app.get("/file_list", response_class=HTMLResponse)
+async def file_list(request: Request):
     try:
         files = [
             filename
@@ -127,7 +44,9 @@ async def file_list():
             if os.path.isfile(os.path.join(OUTPUT_DIR, filename))
         ]
         print("File list retrieved successfully")
-        return {"files": files}
+        return templates.TemplateResponse(
+            "file_list.html", {"request": request, "files": files}
+        )
     except FileNotFoundError:
         print("Output directory not found")
         raise HTTPException(status_code=404, detail="Output directory not found")
@@ -160,19 +79,36 @@ async def play(filename: str):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+def is_valid_url(url: str) -> bool:
+    return re.match(r"^(https?|www)\:\/\/", url) is not None
+
+
+def clean_url(url: str) -> str:
+    # Implement your URL cleaning logic here
+    return url
+
+
+@app.post("/process_url")
+async def process_url_form(request: Request, url: str = Form(...)):
+    return RedirectResponse(url=f"/{url}")
+
 @app.get("/{url:path}")
-def url_path(url: str) -> str:
+async def process_url(request: Request, url: str):
     global piper
-
-    # url = clean_url(url)
-    if not re.match(r"^(https?|www)\:\/\/", url):
-        raise HTTPException(status_code=400, detail="Invalid URL format")
-
-    print(f"URL: {url}")
-
-    text = url_to_text(url)
-    filename = url_to_filename(url)
-
-    output_file = piper.tts(text, filename)
-
-    return output_file
+    try:
+        # Clean url
+        url = clean_url(unquote(url))
+        if not is_valid_url(url):
+            raise HTTPException(status_code=400, detail="Invalid URL format")
+        print(f"URL: {url}")
+        text = url_to_text(url)
+        filename = url_to_filename(url)
+        generated_audio_file = piper.tts(text, filename)
+        return templates.TemplateResponse(
+            "file_list.html", {"request": request, "files": [generated_audio_file]}
+        )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
