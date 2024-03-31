@@ -1,12 +1,23 @@
+import base64
 import os
 import re
 from os import path
 from typing import List, Optional
 
+import html2text
 import trafilatura
 
 OUTPUT_DIR = "./output"
 SITE_PREFIXES = ["http", "https", "www"]
+
+
+def is_valid_url(url: str) -> bool:
+    return re.match(r"^(https?|www)\:\/\/", url) is not None
+
+
+def clean_url(url: str) -> str:
+    # Implement your URL cleaning logic here
+    return url
 
 
 def url_to_text(url: str) -> str:
@@ -17,6 +28,18 @@ def url_to_text(url: str) -> str:
         f.write(text)
 
     return text
+
+
+def url_to_markdown(url: str) -> str:
+    html = trafilatura.fetch_url(url)
+
+    converter = html2text.HTML2Text()
+    markdown_text = converter.handle(html)
+
+    with open(path.join("debug", "extracted_text.md"), "w", encoding="utf-8") as f:
+        f.write(markdown_text)
+
+    return markdown_text
 
 
 def remove_prefixes(string: str, prefixes: List[str]) -> str:
@@ -37,6 +60,19 @@ def url_to_filename(url: str) -> str:
     filename = filename[:255]
 
     return filename
+
+
+def generate_uid_from_url(url):
+    # Encode the URL string to bytes
+    url_bytes = url.encode("utf-8")
+
+    # Encode the URL bytes using Base64
+    uid_bytes = base64.b64encode(url_bytes)
+
+    # Convert the Base64 encoded bytes to a string
+    uid = uid_bytes.decode("utf-8")
+
+    return uid
 
 
 def get_audio_files() -> List[str]:

@@ -1,5 +1,6 @@
-import plyvel
 import json
+
+import plyvel
 
 
 class JSONDatabase:

@@ -1,24 +1,39 @@
-import re
+from datetime import datetime
 from urllib.parse import unquote
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from .db import JSONDatabase
+from .post import Post
 from .tts import Piper
-from .utils import get_audio_file_path, get_audio_files, url_to_filename, url_to_text
+from .utils import (
+    clean_url,
+    generate_uid_from_url,
+    get_audio_file_path,
+    get_audio_files,
+    is_valid_url,
+    url_to_filename,
+    url_to_markdown,
+    url_to_text,
+)
+
+DB_PATH = "data/db"
 
 app = FastAPI()
 
 templates = Jinja2Templates(directory="src/templates")
 
 piper: Piper
+db: JSONDatabase
 
 
 @app.on_event("startup")
 async def startup_event():
-    global piper
+    global piper, db
     piper = Piper()
+    db = JSONDatabase(DB_PATH)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -67,15 +82,6 @@ async def play(filename: str):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-def is_valid_url(url: str) -> bool:
-    return re.match(r"^(https?|www)\:\/\/", url) is not None
-
-
-def clean_url(url: str) -> str:
-    # Implement your URL cleaning logic here
-    return url
-
-
 @app.post("/process_url")
 async def process_form_url(request: Request):
     try:
@@ -91,18 +97,27 @@ async def process_form_url(request: Request):
 
 @app.get("/{url:path}")
 async def process_url(request: Request, url: str):
-    global piper
+    global piper, db
     try:
-        # Clean url
-        print(f"Uncleaned URL: {url}")
         url = clean_url(unquote(url))
         if not is_valid_url(url):
             raise HTTPException(status_code=400, detail="Invalid URL format")
-        print(f"Cleaned URL: {url}")
-        text = url_to_text(url)
+
+        # text = url_to_text(url)
+        text = url_to_markdown(url)
         filename = url_to_filename(url)
-        generated_audio_file = piper.tts(text, filename)
-        print(f"Generated audio file to {generated_audio_file}")
+        # generated_audio_file = piper.tts(text, filename)
+
+        post_id = generate_uid_from_url(url)
+        post = Post(
+            id=post_id,
+            title="Title of the Post",  # Set the title accordingly
+            url=url,
+            date=datetime.now(),
+            summary="Summary of the Post",  # Set the summary accordingly
+        )
+        post.store_json(db)
+
         response = await file_list(request)
         return response
     except HTTPException as e:

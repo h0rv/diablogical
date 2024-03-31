@@ -235,6 +235,16 @@ files = [
 ]
 
 [[package]]
+name = "html2text"
+version = "2024.2.26"
+description = "Turn HTML into equivalent Markdown-structured text."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "html2text-2024.2.26.tar.gz", hash = "sha256:05f8e367d15aaabc96415376776cdd11afd5127a77fce6e36afc60c563ca2c32"},
+]
+
+[[package]]
 name = "htmldate"
 version = "1.8.0"
 description = "Fast and robust extraction of original and updated publication dates from URLs and web pages."
@@ -482,12 +492,29 @@ files = [
     {file = "lxml-5.2.0.tar.gz", hash = "sha256:21dc490cdb33047bc7f7ad76384f3366fa8f5146b86cc04c4af45de901393b90"},
 ]
 
+[package.dependencies]
+lxml-html-clean = {version = "*", optional = true, markers = "extra == \"html-clean\""}
+
 [package.extras]
 cssselect = ["cssselect (>=0.7)"]
 html-clean = ["lxml-html-clean"]
 html5 = ["html5lib"]
 htmlsoup = ["BeautifulSoup4"]
 source = ["Cython (>=3.0.10)"]
+
+[[package]]
+name = "lxml-html-clean"
+version = "0.1.0"
+description = "HTML cleaner from lxml project"
+optional = false
+python-versions = "*"
+files = [
+    {file = "lxml_html_clean-0.1.0-py3-none-any.whl", hash = "sha256:f21a33d279eb3bddd336ebfa0c73d3d5b359dbfa8113014f7d1f2d8738fdc305"},
+    {file = "lxml_html_clean-0.1.0.tar.gz", hash = "sha256:003b61437129b2df4f6f6455e20f5f57707828e2067bc5524d0142e240bb4cd1"},
+]
+
+[package.dependencies]
+lxml = "*"
 
 [[package]]
 name = "markupsafe"
@@ -1359,4 +1386,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "e46064c384ff06e7d4f879d89e8f047dbb228045b3ddc8241338b0aefe03fc2d"
+content-hash = "55302b151c9c547bde3549a0f6b356b94049e1fc401c70a28ed391e24ce835ea"
