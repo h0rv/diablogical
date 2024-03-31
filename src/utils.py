@@ -1,10 +1,9 @@
 import os
 import re
 from os import path
-from typing import List, Optional, Any
+from typing import List, Optional
 
 import trafilatura
-
 
 OUTPUT_DIR = "./output"
 SITE_PREFIXES = ["http", "https", "www"]
@@ -20,7 +19,7 @@ def url_to_text(url: str) -> str:
     return text
 
 
-def remove_prefixes(string: str, prefixes: [str]) -> str:
+def remove_prefixes(string: str, prefixes: List[str]) -> str:
     return string.lstrip(
         str(tuple(prefix for prefix in prefixes if string.startswith(prefix)))
     )

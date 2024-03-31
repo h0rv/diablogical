@@ -1,13 +1,12 @@
-import os
-from urllib.parse import unquote
 import re
+from urllib.parse import unquote
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from .tts import Piper
-from .utils import url_to_filename, url_to_text, get_audio_files, get_audio_file_path
+from .utils import get_audio_file_path, get_audio_files, url_to_filename, url_to_text
 
 app = FastAPI()
 
@@ -82,8 +81,9 @@ async def process_form_url(request: Request):
     try:
         form_data = await request.form()
         url = form_data.get("url")
-        response = await process_url(request, url)
-        return response
+        if not isinstance(url, str):
+            raise
+        return await process_url(request, url)
     except Exception as e:
         print(f"Error processing form URL: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
